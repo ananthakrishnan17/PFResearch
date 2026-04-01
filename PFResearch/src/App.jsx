@@ -1,12 +1,10 @@
 import React, { useReducer, useState, useMemo, useEffect } from 'react';
 
-// ── Import from our clean architecture layers ─────────────
-import { sessionApi }  from './api/sessionApi.js';
-import { productApi }  from './api/index';
-import { orderApi }    from './api/index';
-import { cartReducer, initialCartState, CART_ACTIONS } from './store/index';
-import { useOrderTotals } from './hooks/index';
-
+import { sessionApi }  from './api/sessionApi';
+import { productApi }  from './api/productApi';
+import { orderApi }    from './api/orderApi';
+import { cartReducer, initialCartState, CART_ACTIONS } from './store/cartReducer';
+import { useOrderTotals } from './hooks/useOrderTotals';
 // ── Constants ─────────────────────────────────────────────
 const SESSION_ID  = 1;
 const CONFIG_ID   = 1;
