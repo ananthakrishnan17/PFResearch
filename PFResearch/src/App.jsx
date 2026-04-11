@@ -337,10 +337,52 @@ export default function App() {
     }),
   [products, cat, search]);
 
+
+// ── Spot Print Function (Call Print Agent) ─────────────
+  const printBillToLocalAgent = async (finalOrderId) => {
+    try {
+      // Agent-kku theveyana JSON format-la data-va map pandrom
+      const printData = {
+        orderId: finalOrderId || orderRef,
+        cashierName: "Admin", // Itha unga session data-la irunthu dynamic-a mathikalam
+        totalAmount: total,
+        items: cart.lines.map(line => ({
+          name: line.name,
+          qty: line.qty,
+          price: parseFloat(line.subtotal)
+        }))
+      };
+
+      // Namma local agent-kku request anuppurom
+      const response = await fetch('http://localhost:8080/api/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(printData)
+      });
+
+      const result = await response.json();
+      if (result.status !== 'success') {
+        console.error("Print Failed:", result.message);
+      } else {
+        console.log("✅ Spot Bill Printed Successfully!");
+      }
+    } catch (err) {
+      console.error("Print Agent kooda connect aagala. Agent run aagutha nu check pannunga!", err);
+      // Backend (KassaPOS) save aagidum, aana print aagalana user-kku oru chinna alert tharalam
+      alert("Bill saved, but Printer Agent is not running!");
+    }
+  };
+
+
+
   // ── Pay handler ────────────────────────────────────────
+// ── Pay handler ────────────────────────────────────────
   const handlePay = async () => {
     setLoading(true);
     setError(null);
+    
+    let finalOrderId = orderRef; // Default local reference
+    
     try {
       const res = await orderApi.sync(SESSION_ID, [{
         uuid:      crypto.randomUUID(),
@@ -362,6 +404,8 @@ export default function App() {
         }],
       }]);
 
+      finalOrderId = res.orderIds?.[0] || orderRef; // Backend ID kedaicha atha eduthukurom
+
       setReceipt({
         ref:       orderRef,
         lines:     [...cart.lines],
@@ -369,9 +413,10 @@ export default function App() {
         paid:      tenderedNum,
         change,
         payMethod: PAYMENT_METHODS.find(p => p.id === payMethod)?.name,
-        orderId:   res.orderIds?.[0],
+        orderId:   finalOrderId,
         synced:    res.status === 'ok',
       });
+      
     } catch (e) {
       // Save locally even if server fails
       setReceipt({
@@ -386,6 +431,9 @@ export default function App() {
       });
       setError('Server unreachable — order saved locally.');
     } finally {
+      // 🔥 PUDHU LINE: Server success aanaalum, fail aanaalum (offline mode) Print aaganum!
+      printBillToLocalAgent(finalOrderId);
+      
       setLoading(false);
     }
   };
